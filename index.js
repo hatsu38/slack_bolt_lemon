@@ -7,22 +7,29 @@ const app = new App({
 });
 
 
-app.event('app_home_opened', async ({ event, say }) => {
-  // Look up the user from DB
-  let user = store.getUser(event.user);
+// app.event('app_home_opened', async ({ event, say }) => {
+//   // Look up the user from DB
+//   let user = store.getUser(event.user);
 
-  if (!user) {
-    user = {
-      user: event.user,
-      channel: event.channel
-    };
-    store.addUser(user);
+//   if (!user) {
+//     user = {
+//       user: event.user,
+//       channel: event.channel
+//     };
+//     store.addUser(user);
 
-    await say(`Hello world, and welcome <@${user}>!`);
-  } else {
-    await say('Hi again!');
-  }
+//     await say(`Hello world, and welcome <@${user}>!`);
+//   } else {
+//     await say('Hi again!');
+//   }
+// });
+
+app.message(/おはよう/, async ({ message, say }) => {
+  if (message.subtype === 'bot_message') return;
+
+  await say(`おはよう、<@${message.user}>！🌅`);
 });
+
 
 
 // Start your app
