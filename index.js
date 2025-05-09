@@ -13,14 +13,14 @@ const openai = new OpenAI({
 });
 
 app.message('hello', async ({ message, say }) => {
-  console.log("hello!")
+  app.logger.info("hello!")
   // イベントがトリガーされたチャンネルに say() でメッセージを送信します
   await say(`おはよう！ <@${message.user}>!`);
 });
 
 app.event("app_mention", async ({ event, client }) => {
   // スレッド全体を読み込む
-  console.log("event!", event)
+  app.logger.info("event!", event)
   const messages = await getRawMessages(event.channel, event.ts);
   if (!messages) return;
 
