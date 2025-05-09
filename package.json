@@ -9,9 +9,8 @@
     "start": "node index.js"
   },
   "engines": {
-    "node": "20.x"
+    "node": "18.x"
   },
-  "type": "module",
   "author": "Slack Technologies, LLC",
   "license": "MIT",
   "dependencies": {
