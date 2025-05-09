@@ -5,10 +5,17 @@ const { OpenAI } = require("openai");
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
+  appToken: process.env.SLACK_APP_TOKEN // 追加
 });
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+app.message('hello', async ({ message, say }) => {
+  console.log("hello!")
+  // イベントがトリガーされたチャンネルに say() でメッセージを送信します
+  await say(`おはよう！ <@${message.user}>!`);
 });
 
 app.event("app_mention", async ({ event, client }) => {
@@ -101,5 +108,5 @@ const getRawMessages = async (channelId, messageId) => {
   // アプリを起動します
   await app.start(process.env.PORT || 3000);
 
-  app.logger.info("⚡️ Bolt app is running!");
+  app.logger.info("⚡️ Bolt app is running!🏃");
 })();
