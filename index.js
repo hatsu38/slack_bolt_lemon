@@ -1,15 +1,16 @@
 const { App } = require('@slack/bolt');
-import { OpenAI } from "openai";
+const { OpenAI } = require("openai");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   appToken: process.env.SLACK_APP_TOKEN,
-  socketMode: true,
+  signingSecret: process.env.SLACK_SIGNING_SECRET
 });
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 
 app.event("app_mention", async ({ event, client }) => {
   // スレッド全体を読み込む
@@ -18,7 +19,7 @@ app.event("app_mention", async ({ event, client }) => {
 
   const chatMessages = messages.map((msg) => ({
     role: msg.user === event.user ? "user" : "assistant",
-    content: msg.text ?? "",
+    content: msg.text || "",
   }));
 
   // ChatGPT へ投げる！
@@ -64,8 +65,7 @@ const getRawMessages = async (channelId, messageId) => {
       replies.messages.forEach((message) => {
         if (message.text != null) {
           const attachmentsText =
-            message.attachments
-              ?.map((attachment) => attachment.text ?? attachment.fallback)
+            (message.attachments || []).map((attachment) => attachment.text || attachment.fallback)
               .filter((text) => text != null)
               .map((text) =>
                 text
@@ -73,7 +73,7 @@ const getRawMessages = async (channelId, messageId) => {
                   .map((line) => `> ${line}`)
                   .join("\n")
               )
-              .join("\n") ?? "";
+              .join("\n") || "";
 
           messageList.push({
             ...message,
@@ -84,8 +84,8 @@ const getRawMessages = async (channelId, messageId) => {
         }
       });
 
-      hasMore = replies.has_more ?? false;
-      cursor = replies.response_metadata?.next_cursor;
+      hasMore = replies.has_more || false;
+      cursor = (replies.response_metadata || "").next_cursor;
     } catch (error) {
       console.error("Error fetching raw messages:", error);
       return null;
