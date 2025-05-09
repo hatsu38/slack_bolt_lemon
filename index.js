@@ -1,4 +1,4 @@
-import { App } from "@slack/bolt"; 
+const { App } = require('@slack/bolt');
 import { OpenAI } from "openai";
 
 const app = new App({
@@ -94,3 +94,9 @@ const getRawMessages = async (channelId, messageId) => {
 
   return messageList;
 };
+
+
+(async () => {
+  await app.start(process.env.PORT || 3000);
+  console.log('⚡️ Bolt app is running!!');
+})();
