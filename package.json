@@ -9,14 +9,14 @@
     "start": "node index.js"
   },
   "engines": {
-    "node": "14.x"
+    "node": "22.x"
   },
+  "type": "module",
   "author": "Slack Technologies, LLC",
   "license": "MIT",
   "dependencies": {
-    "@slack/bolt": "^3.9.0",
+    "@slack/bolt": "^4.3.0",
     "dotenv": "^16.5.0",
-    "typescript": "5.4.5",
     "openai": "^4.91.1"
   }
 }
