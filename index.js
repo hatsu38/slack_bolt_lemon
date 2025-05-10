@@ -26,8 +26,7 @@ app.message('おはよう', async ({ message, client }) => {
   });
 });
 
-app.event("reaction_added", async ({ event, client, ack }) => {
-  await ack();
+app.event("reaction_added", async ({ event, client }) => {
   if (event.reaction !== "要約_bylemon") return;
 
   const { item } = event;
@@ -35,6 +34,13 @@ app.event("reaction_added", async ({ event, client, ack }) => {
   const channel = item.channel;
 
   app.logger.info(`[reaction_added] スタンプ受信 @${threadTs}`);
+
+  // まずは返事をする
+  await client.chat.postMessage({
+    channel: channel,
+    thread_ts: threadTs,
+    text: ":要約_bylemon: の スタンプありがとう！要約するにゃ〜", // スタンプに反応してメッセージを送る
+  });
 
   app.logger.info(`[reaction_added] スレッドメッセージ取得中...`);
   const messages = await getRawMessages(channel, threadTs);
@@ -56,7 +62,7 @@ app.event("reaction_added", async ({ event, client, ack }) => {
     messages: [
       {
         role: "system",
-        content: "以下のSlackスレッドの内容を簡潔に要約してにゃ！",
+        content: "以下のSlackスレッドの内容を簡潔に要約してにゃ！このBotの名前は「レモンちゃん」です。緩めの可愛い猫みたいなキャラクターです！",
       },
       ...chatMessages,
     ],
@@ -76,7 +82,6 @@ app.event("reaction_added", async ({ event, client, ack }) => {
 
   app.logger.info(`[reaction_added] 要約完了！`);
 });
-
 
 app.command("/summary", async ({ command, ack, respond }) => {
   app.logger.info("[/summary] コマンド受信");
@@ -119,7 +124,7 @@ app.command("/summary", async ({ command, ack, respond }) => {
       messages: [
         {
           role: "system",
-          content: "以下はSlackチャンネルの最近の会話です。内容を簡潔に要約してにゃ！",
+          content: "以下はSlackチャンネルの最近の会話です。内容を簡潔に要約してにゃ！このBotの名前は「レモンちゃん」です。緩めの可愛い猫みたいなキャラクターです！",
         },
         ...userMessages,
       ],
