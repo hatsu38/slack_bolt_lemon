@@ -18,9 +18,54 @@ app.message('おはよう', async ({ message, client }) => {
   await client.chat.postMessage({
     channel: message.channel,
     thread_ts: message.ts, // ← これでスレッドに返信！
-    text: `おはよう！ <@${message.user}>!`,
+    text: `おはよう！ <@${message.user}>! 今日も1日頑張ろう❤️‍🔥`,
   });
 });
+
+app.event("reaction_added", async ({ event, client }) => {
+  // スタンプが :memo: じゃなければ無視
+  if (event.reaction !== "memo") return;
+
+  const { item, user } = event;
+
+  // スレッドの親TSは押されたメッセージそのもの
+  const threadTs = item.ts;
+  const channel = item.channel;
+
+  app.logger.info(`:memo: が ${threadTs} に押されたにゃ！`);
+
+  // スレッドのメッセージを取得
+  const messages = await getRawMessages(channel, threadTs);
+  if (!messages || messages.length === 0) return;
+
+  const chatMessages = messages.map((msg) => ({
+    role: "user",
+    content: msg.text || "",
+  }));
+
+  // ChatGPTで要約するにゃ！
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-nano",
+    messages: [
+      {
+        role: "system",
+        content: "以下のSlackスレッドの内容を簡潔に要約してにゃ！",
+      },
+      ...chatMessages,
+    ],
+    temperature: 0.3,
+  });
+
+  const summary = completion.choices[0].message.content;
+
+  // 要約をスレッドに投稿！
+  await client.chat.postMessage({
+    channel: channel,
+    thread_ts: threadTs,
+    text: `📝 要約にゃ：\n${summary}`,
+  });
+});
+
 
 
 app.command("/summary", async ({ command, ack, respond }) => {
