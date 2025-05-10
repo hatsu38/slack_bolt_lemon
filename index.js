@@ -12,11 +12,69 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-app.message('hello', async ({ message, say }) => {
-  app.logger.info("hello!")
-  // イベントがトリガーされたチャンネルに say() でメッセージを送信します
-  await say(`おはよう！ <@${message.user}>!`);
+app.message('おはよう', async ({ message, client }) => {
+  app.logger.info("おはよう!");
+
+  await client.chat.postMessage({
+    channel: message.channel,
+    thread_ts: message.ts, // ← これでスレッドに返信！
+    text: `おはよう！ <@${message.user}>!`,
+  });
 });
+
+
+app.command("/summary", async ({ command, ack, respond }) => {
+  await ack(); // 即レスポンス（3秒以内）
+
+  try {
+    const thread_ts = command.thread_ts || command.message_ts || command.ts;
+    const channel = command.channel_id;
+
+    // スレッドのメッセージ取得
+    const messages = await getRawMessages(channel, thread_ts);
+    if (!messages) {
+      await respond({
+        text: "メッセージの取得に失敗したにゃ…😿",
+        response_type: "ephemeral",
+      });
+      return;
+    }
+
+    const chatMessages = messages.map((msg) => ({
+      role: "user",
+      content: msg.text || "",
+    }));
+
+    // ChatGPTで要約するにゃ！
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-nano",
+      messages: [
+        {
+          role: "system",
+          content: "以下のスレッドの会話を簡潔に要約してにゃ！",
+        },
+        ...chatMessages,
+      ],
+      temperature: 0.3,
+    });
+
+    const summary = completion.choices[0].message.content;
+
+    // スレッドに返信！
+    await app.client.chat.postMessage({
+      channel: channel,
+      text: `📝 要約にゃ：\n${summary}`,
+      thread_ts: thread_ts,
+    });
+  } catch (error) {
+    console.error("Error in /summary:", error);
+    await respond({
+      text: "要約中にエラーが起きたにゃ…💥",
+      response_type: "ephemeral",
+    });
+  }
+});
+
 
 app.event("app_mention", async ({ event, client }) => {
   // スレッド全体を読み込む
