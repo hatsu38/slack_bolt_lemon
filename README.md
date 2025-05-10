@@ -1,32 +1,64 @@
-# Slack Bolt - Hello World
+# レモンちゃんBot（Slack + OpenAI連携Bot）
 
-Read the tutorial at:
-[https://api.slack.com/tutorials/hello-world-bolt](https://api.slack.com/tutorials/hello-world-bolt)
+SlackのBolt for JavaScriptとOpenAI APIを活用した、猫っぽい性格のSlack Bot「レモンちゃん」です 🐱✨  
+メッセージへの反応や、スレッド要約、/summaryコマンドなどを通じてSlack内の会話を要約してくれます！
 
+## 🧠 主な機能
 
----
+### 🐾 おはようメッセージ
+- 誰かが「おはよう」と言うと、自動で元気に挨拶を返してくれます。
+- Botが発言したメッセージには反応しません。
 
-This is a simple example App built with [Slack's Bolt Framework](https://slack.dev/bolt-js/tutorial/getting-started) for Node.js.
+### 😺 絵文字リアクションで要約
+- スレッド内の投稿に `:要約_bylemon:` のリアクションをつけると、そのスレッド全体を要約してくれます。
+- 可愛いキャラ口調で返信してくれます。
 
-Our App shows a welcome message when a user opens the "app home".
+### 📝 `/summary` コマンド
+- 現在のチャンネルの直近50件の人間の発言を取得し、要約してくれます。
+- コマンドは `/summary` と入力するだけでOK。
 
-### Slack API & features used in the app
+### 🧵 メンションに返信
+- `@レモンちゃん` へのメンションを含むメッセージに反応し、そのスレッド全体を読み込んで文脈を理解し返信してくれます。
+- 時々、返事を少し遅らせる可愛い演出もあります。
 
-* The [`app_home_opened`](https://api.slack.com/events/app_home_opened) event gets triggered when a user opens the bot's "app home" for the first time
-* The app uses the Bolt's `say` method to send a welcome message to the user
+## 🔧 セットアップ
 
-### Requirements
+### 必要な環境変数
 
-* A Bot User must be added to your App
-* Your App must be subscribed to [Events API](https://api.slack.com/events-api)
-* Your app needs to be subscribed to the events mentioned in the *Events* section
+| 変数名 | 説明 |
+|--------|------|
+| `SLACK_BOT_TOKEN` | Slack Botトークン |
+| `SLACK_SIGNING_SECRET` | Slackアプリの署名シークレット |
+| `SLACK_APP_TOKEN` | Socket Mode用のApp Token（`xapp-`で始まるやつ） |
+| `OPENAI_API_KEY` | OpenAI APIキー |
+| `PORT` | サーバーを起動するポート（デフォルトは3000） |
 
-### Scopes
+### インストール手順
 
-* [`chat:write`](https://api.slack.com/scopes/chat:write)
+```bash
+git clone <このリポジトリのURL>
+cd <リポジトリ名>
+npm install
+cp .env.example .env # 必要に応じて .env を用意
+npm start
+```
 
-### Events
+## 🧾 必要なSlackの設定
 
-#### Workspace events
-* [`app_home_opened`](https://api.slack.com/events/app_home_opened)
+### OAuthスコープ
+- `chat:write`
+- `channels:history`
+- `commands`
+- `reactions:read`
+- `reactions:write`
+- `app_mentions:read`
+
+### イベントサブスクリプション
+Bot Events:
+- `message.channels`
+- `reaction_added`
+- `app_mention`
+
+### Slash Commands
+- `/summary`
 
