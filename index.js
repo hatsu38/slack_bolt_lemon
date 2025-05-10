@@ -14,27 +14,32 @@ const openai = new OpenAI({
 
 app.message('おはよう', async ({ message, client }) => {
   app.logger.info("おはよう!");
+  
+  if (message.subtype === 'bot_message') {
+    return;
+  }
 
   await client.chat.postMessage({
     channel: message.channel,
     thread_ts: message.ts, // ← これでスレッドに返信！
-    text: `おはよう！ <@${message.user}>! 今日も1日頑張ろう❤️‍🔥`,
+    text: `おはよう <@${message.user}>！ 今日も1日頑張ろう❤️‍🔥`,
   });
 });
 
-app.event("reaction_added", async ({ event, client }) => {
-  // スタンプが :memo: じゃなければ無視
-  if (event.reaction !== "memo") return;
+app.event("reaction_added", async ({ event, client, ack }) => {
+  await ack(); // 👈 これを最初に！
 
+  // スタンプが :memo: じゃなければ無視
+  if (event.reaction !== "要約_bylemon") return;
+
+  app.logger.info("reaction_added", event)
   const { item, user } = event;
 
-  // スレッドの親TSは押されたメッセージそのもの
   const threadTs = item.ts;
   const channel = item.channel;
 
-  app.logger.info(`:memo: が ${threadTs} に押されたにゃ！`);
+  app.logger.info(`:要約_bylemon: が ${threadTs} に押されたにゃ！`);
 
-  // スレッドのメッセージを取得
   const messages = await getRawMessages(channel, threadTs);
   if (!messages || messages.length === 0) return;
 
@@ -43,7 +48,6 @@ app.event("reaction_added", async ({ event, client }) => {
     content: msg.text || "",
   }));
 
-  // ChatGPTで要約するにゃ！
   const completion = await openai.chat.completions.create({
     model: "gpt-4.1-nano",
     messages: [
@@ -58,7 +62,6 @@ app.event("reaction_added", async ({ event, client }) => {
 
   const summary = completion.choices[0].message.content;
 
-  // 要約をスレッドに投稿！
   await client.chat.postMessage({
     channel: channel,
     thread_ts: threadTs,
@@ -66,50 +69,60 @@ app.event("reaction_added", async ({ event, client }) => {
   });
 });
 
-
-
 app.command("/summary", async ({ command, ack, respond }) => {
-  await ack(); // 即レスポンス（3秒以内）
+  app.logger.info("command!")
+  await ack(); // 3秒以内に即レス
 
   try {
-    const thread_ts = command.thread_ts || command.message_ts || command.ts;
     const channel = command.channel_id;
 
-    // スレッドのメッセージ取得
-    const messages = await getRawMessages(channel, thread_ts);
-    if (!messages) {
+    // 最近のメッセージを取得（直近50件）
+    const history = await app.client.conversations.history({
+      channel,
+      limit: 50,
+    });
+
+    if (!history || !history.messages || history.messages.length === 0) {
       await respond({
-        text: "メッセージの取得に失敗したにゃ…😿",
+        text: "最近のメッセージが見つからなかったにゃ…😿",
         response_type: "ephemeral",
       });
       return;
     }
 
-    const chatMessages = messages.map((msg) => ({
-      role: "user",
-      content: msg.text || "",
-    }));
+    // 有効なメッセージだけ抽出（botじゃない、textがある）
+    const userMessages = history.messages
+      .filter((msg) => msg.subtype !== "bot_message" && msg.text)
+      .map((msg) => ({
+        role: "user",
+        content: msg.text,
+      }))
+      .reverse(); // 古い順に並び替え（会話の流れを保つ）
 
-    // ChatGPTで要約するにゃ！
+    if (userMessages.length === 0) {
+      await respond({
+        text: "人間の投稿がなかったにゃ…😢",
+        response_type: "ephemeral",
+      });
+      return;
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-nano",
       messages: [
         {
           role: "system",
-          content: "以下のスレッドの会話を簡潔に要約してにゃ！",
+          content: "以下はSlackチャンネルの最近の会話です。内容を簡潔に要約してにゃ！",
         },
-        ...chatMessages,
+        ...userMessages,
       ],
-      temperature: 0.3,
+      temperature: 0,
     });
-
     const summary = completion.choices[0].message.content;
 
-    // スレッドに返信！
     await app.client.chat.postMessage({
       channel: channel,
-      text: `📝 要約にゃ：\n${summary}`,
-      thread_ts: thread_ts,
+      text: `📝 最近の会話の要約にゃ：\n${summary}`,
     });
   } catch (error) {
     console.error("Error in /summary:", error);
@@ -121,9 +134,10 @@ app.command("/summary", async ({ command, ack, respond }) => {
 });
 
 
+
 app.event("app_mention", async ({ event, client }) => {
   // スレッド全体を読み込む
-  app.logger.info("event!", event)
+  app.logger.info("app_mention!", event)
   const messages = await getRawMessages(event.channel, event.ts);
   if (!messages) return;
 
